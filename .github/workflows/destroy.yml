@@ -21,7 +21,6 @@ permissions:
 jobs:
   destroy-workload:
     name: 'destroy workload'
-    needs: destroy-dbx-resources
     runs-on: ubuntu-latest
     defaults:
       run:
