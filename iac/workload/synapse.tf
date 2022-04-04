@@ -29,3 +29,12 @@ resource "azurerm_key_vault_secret" "stored_secret" {
   value        = random_password.password.result
   key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
+
+resource "azurerm_synapse_sql_pool" "example" {
+  name                 = "crypto_gold"
+  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
+  sku_name             = "DW100c"
+  create_mode          = "Default"
+  data_encrypted       = true
+  tags                 = var.tags
+}
