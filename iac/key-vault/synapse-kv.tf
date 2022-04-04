@@ -34,7 +34,7 @@ resource "azurerm_key_vault_access_policy" "sql_vault_deployer_acl" {
 resource "azurerm_key_vault_access_policy" "sql_admin_acl" {
   key_vault_id = azurerm_key_vault.synapse_vault.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azuread_user.synapse_admin_user_account
+  object_id    = data.azuread_user.synapse_admin_user_account.object_id
 
   secret_permissions = [
     "Backup",
