@@ -1,0 +1,198 @@
+name: deploy
+on: 
+  push:
+    branches:
+      - "main"
+    paths:
+      - iac/**
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+env:
+  KEY_VAULT_WORKING_DIRECTORY: iac/key-vault  
+  KEY_VAULT_REMOTE_STATE_KEY: synapse-key-vaults.terraform.tfstate
+  WORKLOAD_WORKING_DIRECTORY: iac/workload
+  WORKLOAD_REMOTE_STATE_KEY: synapse.terraform.tfstate
+  REMOTE_STATE_RG: synapse-demo-centralus
+  REMOTE_STATE_SA: tfsynapsecd
+  REMOTE_STATE_CONTAINER: synapse-remote-state-centralus-demo
+  ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+  ARM_CLIENT_ID: ${{ secrets.CLIENT_ID }}
+  
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan-key-vault:
+    name: 'plan key vault'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.KEY_VAULT_WORKING_DIRECTORY }}
+    steps:
+      - name: 'Checkout Repo'
+        uses: actions/checkout@v2
+      - name: 'Azure Login'
+        uses: azure/login@v1
+        with:
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLIENT_ID }}
+      - name: 'Get Deployer Secret'
+        id: get-deployer-secret
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${{ secrets.DEPLOYER_KEY_VAULT }}
+          secrets: 'synapse-demo-centralus-deployer, tfsynapsecd-access-key'
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v1
+      - name: 'Terraform Init'
+        env: 
+          TF_CLI_ARGS_init: "-backend-config='resource_group_name=${{env.REMOTE_STATE_RG}}' -backend-config='storage_account_name=${{env.REMOTE_STATE_SA}}' -backend-config='container_name=${{env.REMOTE_STATE_CONTAINER}}' -backend-config='key=${{env.KEY_VAULT_REMOTE_STATE_KEY}}'"
+          ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+        run: terraform init
+      - name: 'Terraform Validate'
+        run: terraform validate
+      - name: 'Terraform Plan'
+        env:        
+          ARM_CLIENT_SECRET: ${{ steps.get-deployer-secret.outputs.synapse-demo-centralus-deployer }}
+          ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+        run: terraform plan -out="./key-vaults.tfplan"
+      - name: 'Upload Plan'
+        uses: actions/upload-artifact@v2
+        with:
+          name: key-vaults-plan
+          path: ${{ env.KEY_VAULT_WORKING_DIRECTORY }}/key-vaults.tfplan
+          retention-days: 1
+  apply-key-vault:
+    name: 'apply key vault'
+    needs: plan-key-vault
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repo'
+        uses: actions/checkout@v2
+      - name: 'Azure Login'
+        uses: azure/login@v1
+        with:
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLIENT_ID }}
+      - name: 'Get Deployer Secret'
+        id: get-deployer-secret
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${{ secrets.DEPLOYER_KEY_VAULT }}
+          secrets: 'synapse-demo-centralus-deployer, tfsynapsecd-access-key'
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v1
+      - name: 'Terraform Init'
+        env: 
+          TF_CLI_ARGS_init: "-backend-config='resource_group_name=${{env.REMOTE_STATE_RG}}' -backend-config='storage_account_name=${{env.REMOTE_STATE_SA}}' -backend-config='container_name=${{env.REMOTE_STATE_CONTAINER}}' -backend-config='key=${{env.KEY_VAULT_REMOTE_STATE_KEY}}'"
+          ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+        working-directory: ${{ env.KEY_VAULT_WORKING_DIRECTORY }}
+        run: terraform init
+      - name: 'Download Plan'
+        uses: actions/download-artifact@v2
+        with:
+          name: key-vaults-plan
+      - name: 'Move Plan'
+        run: mv ./key-vaults.tfplan ${{ env.KEY_VAULT_WORKING_DIRECTORY }}
+      - name: 'Delete Plan from Repo'
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: key-vaults-plan
+          failOnError: false
+      - name:  'Terraform Apply'
+        env:
+          ARM_CLIENT_SECRET: ${{ steps.get-deployer-secret.outputs.synapse-demo-centralus-deployer }}
+          ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+        working-directory: ${{ env.KEY_VAULT_WORKING_DIRECTORY }}
+        run: terraform apply -auto-approve "./key-vaults.tfplan"
+  plan-workload:
+      name: 'plan workload'
+      needs: apply-key-vault
+      runs-on: ubuntu-latest
+      defaults:
+        run:
+          working-directory: ${{ env.WORKLOAD_WORKING_DIRECTORY }}
+      steps:
+        - name: 'Checkout Repo'
+          uses: actions/checkout@v2
+        - name: 'Azure Login'
+          uses: azure/login@v1
+          with:
+            tenant-id: ${{ secrets.TENANT_ID }}
+            subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+            client-id: ${{ secrets.CLIENT_ID }}
+        - name: 'Get Deployer Secrets'
+          id: get-deployer-secret
+          uses: azure/get-keyvault-secrets@v1
+          with:
+            keyvault: ${{ secrets.DEPLOYER_KEY_VAULT }}
+            secrets: 'synapse-demo-centralus-deployer, tfsynapsecd-access-key'
+        - name: 'Setup Terraform'
+          uses: hashicorp/setup-terraform@v1
+        - name: 'Terraform Init'
+          env: 
+            TF_CLI_ARGS_init: "-backend-config='resource_group_name=${{env.REMOTE_STATE_RG}}' -backend-config='storage_account_name=${{env.REMOTE_STATE_SA}}' -backend-config='container_name=${{env.REMOTE_STATE_CONTAINER}}' -backend-config='key=${{env.WORKLOAD_REMOTE_STATE_KEY}}'"
+            ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+          run: terraform init
+        - name: 'Terraform Validate'
+          run: terraform validate
+        - name: 'Terraform Plan'
+          env:        
+            ARM_CLIENT_SECRET: ${{ steps.get-deployer-secret.outputs.synapse-demo-centralus-deployer }}
+            ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+          run: terraform plan -out="./workload.tfplan"
+        - name: 'Upload Plan'
+          uses: actions/upload-artifact@v2
+          with:
+            name: workload-plan
+            path: ${{ env.WORKLOAD_WORKING_DIRECTORY }}/workload.tfplan
+            retention-days: 1
+  apply-workload:
+    name: 'apply workload'
+    needs: plan-workload
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repo'
+        uses: actions/checkout@v2
+      - name: 'Download Plan'
+        uses: actions/download-artifact@v2
+        with:
+          name: workload-plan
+      - name: 'Move Plan'
+        run: mv ./workload.tfplan ${{ env.WORKLOAD_WORKING_DIRECTORY }}
+      - name: 'Delete Plan from Repo'
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: workload-plan
+          failOnError: false
+      - name: 'Azure Login'
+        uses: azure/login@v1
+        with:
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLIENT_ID }}
+      - name: 'Get Deployer Secrets'
+        id: get-deployer-secret
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${{ secrets.DEPLOYER_KEY_VAULT }}
+          secrets: 'synapse-demo-centralus-deployer, tfsynapsecd-access-key'
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v1
+      - name: 'Terraform Init'
+        env: 
+          TF_CLI_ARGS_init: "-backend-config='resource_group_name=${{env.REMOTE_STATE_RG}}' -backend-config='storage_account_name=${{env.REMOTE_STATE_SA}}' -backend-config='container_name=${{env.REMOTE_STATE_CONTAINER}}' -backend-config='key=${{env.WORKLOAD_REMOTE_STATE_KEY}}'"
+          ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+        working-directory: ${{ env.WORKLOAD_WORKING_DIRECTORY }}
+        run: terraform init
+      - name:  'Terraform Apply'
+        env:
+          ARM_CLIENT_SECRET: ${{ steps.get-deployer-secret.outputs.synapse-demo-centralus-deployer }}
+          ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+        working-directory: ${{ env.WORKLOAD_WORKING_DIRECTORY }}
+        run: terraform apply -auto-approve "./workload.tfplan"
