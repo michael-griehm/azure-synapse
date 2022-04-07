@@ -24,17 +24,16 @@ resource "azurerm_synapse_workspace" "synapse" {
   }
 }
 
-resource "azurerm_key_vault_secret" "stored_secret" {
+resource "azurerm_key_vault_secret" "sql_administrator_login" {
   name         = azurerm_synapse_workspace.synapse.sql_administrator_login
   value        = random_password.password.result
   key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
 
-resource "azurerm_synapse_sql_pool" "example" {
+resource "azurerm_synapse_sql_pool" "crypto_gold" {
   name                 = "crypto_gold"
   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
   sku_name             = "DW100c"
   create_mode          = "Default"
-  data_encrypted       = true
   tags                 = var.tags
 }
