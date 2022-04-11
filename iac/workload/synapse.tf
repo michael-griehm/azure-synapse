@@ -30,8 +30,8 @@ resource "azurerm_key_vault_secret" "sql_administrator_login" {
   key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
 
-resource "azurerm_synapse_sql_pool" "crypto_gold" {
-  name                 = "crypto_gold"
+resource "azurerm_synapse_sql_pool" "crypto_analytics" {
+  name                 = "crypto_analytics"
   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
   sku_name             = "DW100c"
   create_mode          = "Default"
