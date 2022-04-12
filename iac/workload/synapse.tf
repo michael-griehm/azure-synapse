@@ -9,7 +9,7 @@ resource "random_password" "password" {
 }
 
 resource "azurerm_storage_account" "synapsedatalake" {
-  name                     = "synapsedatalake"
+  name                     = "cryptoanalyticssynapse"
   resource_group_name      = data.azurerm_resource_group.rg.name
   location                 = data.azurerm_resource_group.rg.location
   account_tier             = "Standard"
@@ -87,13 +87,13 @@ resource "azurerm_synapse_linked_service" "adls_linked_service" {
   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
   type                 = "AzureBlobFS"
   type_properties_json = <<JSON
-{
-            "url": "https://${data.azurerm_storage_account.adls.name}.dfs.core.windows.net", 
-            "accountkey": { 
-                "type": "SecureString", 
-                "value": "${data.azurerm_storage_account.adls.primary_access_key}" 
-            }
-        }
+  {
+      "url": "https://${data.azurerm_storage_account.adls.name}.dfs.core.windows.net", 
+      "accountkey": { 
+          "type": "SecureString", 
+          "value": "${data.azurerm_storage_account.adls.primary_access_key}" 
+      }
+  }
 JSON
 
   depends_on = [
