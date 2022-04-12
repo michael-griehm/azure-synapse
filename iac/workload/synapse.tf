@@ -82,21 +82,8 @@ resource "azurerm_synapse_role_assignment" "admin_role_assignment" {
   depends_on = [azurerm_synapse_firewall_rule.allow_all]
 }
 
-resource "azurerm_synapse_linked_service" "adls_linked_service" {
-  name                 = "adls-linked-service"
-  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
-  type                 = "AzureBlobFS"
-  type_properties_json = <<JSON
-  {
-      "url": "https://${data.azurerm_storage_account.adls.name}.dfs.core.windows.net", 
-      "accountkey": { 
-          "type": "SecureString", 
-          "value": "${data.azurerm_storage_account.adls.primary_access_key}" 
-      }
-  }
-JSON
-
-  depends_on = [
-    azurerm_synapse_firewall_rule.allow_all,
-  ]
+resource "azurerm_key_vault_secret" "adls_access_key" {
+  name         = data.azurerm_storage_account.adls.name
+  value        = data.azurerm_storage_account.adls.primary_access_key
+  key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
