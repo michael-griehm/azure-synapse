@@ -31,11 +31,25 @@ resource "azurerm_key_vault_secret" "sql_administrator_login" {
 }
 
 resource "azurerm_synapse_sql_pool" "crypto_analytics" {
-  name                 = "crypto_analytics"
+  name                 = "cryptosql"
   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
   sku_name             = "DW100c"
   create_mode          = "Default"
   tags                 = var.tags
+}
+
+resource "azurerm_synapse_spark_pool" "crypto_analytics_spark_pool" {
+  name                 = "cryptosprk"
+  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
+  node_size_family     = "MemoryOptimized"
+  node_size            = "Small"
+  cache_size           = 100
+  tags                 = var.tags
+  node_count           = 3
+
+  auto_pause {
+    delay_in_minutes = 15
+  }
 }
 
 resource "azurerm_synapse_firewall_rule" "allow_all" {
