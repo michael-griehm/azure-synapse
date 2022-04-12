@@ -37,3 +37,18 @@ resource "azurerm_synapse_sql_pool" "crypto_analytics" {
   create_mode          = "Default"
   tags                 = var.tags
 }
+
+resource "azurerm_synapse_firewall_rule" "allow_all" {
+  name                 = "allow-all"
+  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
+  start_ip_address     = "24.31.171.98"
+  end_ip_address       = "24.31.171.98"
+}
+
+resource "azurerm_synapse_role_assignment" "admin_role_assignment" {
+  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
+  role_name            = "Synapse Administrator"
+  principal_id         = data.azuread_user.synapse_admin_user_account.object_id
+
+  depends_on = [azurerm_synapse_firewall_rule.allow_all]
+}
