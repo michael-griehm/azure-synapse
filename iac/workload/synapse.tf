@@ -41,8 +41,8 @@ resource "azurerm_synapse_sql_pool" "crypto_analytics" {
 resource "azurerm_synapse_firewall_rule" "allow_all" {
   name                 = "allow-all"
   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
-  start_ip_address     = "24.31.171.98"
-  end_ip_address       = "24.31.171.98"
+  start_ip_address     = "0.0.0.0"
+  end_ip_address       = "255.255.255.255"
 }
 
 resource "azurerm_synapse_role_assignment" "admin_role_assignment" {
