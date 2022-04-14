@@ -30,10 +30,20 @@ resource "azurerm_synapse_workspace" "synapse" {
   storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.synapse_root.id
   sql_administrator_login              = "sqladminuser"
   sql_administrator_login_password     = random_password.password.result
-  tags                                 = var.tags
+  managed_resource_group_name          = "${data.azurerm_resource_group.rg.name}-managed"
+  # managed_virtual_network_enabled      = true
+  # data_exfiltration_protection_enabled = true
+  # sql_identity_control_enabled         = true
+  tags = var.tags
 
   aad_admin {
     login     = "AzureAD Admin"
+    object_id = data.azuread_user.synapse_admin_user_account.object_id
+    tenant_id = data.azurerm_client_config.current.tenant_id
+  }
+
+  sql_aad_admin {
+    login     = "SQL AzureAD Admin"
     object_id = data.azuread_user.synapse_admin_user_account.object_id
     tenant_id = data.azurerm_client_config.current.tenant_id
   }
@@ -45,13 +55,13 @@ resource "azurerm_key_vault_secret" "sql_administrator_login" {
   key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
 
-resource "azurerm_synapse_sql_pool" "crypto_analytics" {
-  name                 = "cryptosql"
-  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
-  sku_name             = "DW100c"
-  create_mode          = "Default"
-  tags                 = var.tags
-}
+# resource "azurerm_synapse_sql_pool" "crypto_analytics" {
+#   name                 = "cryptosql"
+#   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
+#   sku_name             = "DW100c"
+#   create_mode          = "Default"
+#   tags                 = var.tags
+# }
 
 resource "azurerm_synapse_spark_pool" "crypto_analytics_spark_pool" {
   name                 = "cryptosprk"
