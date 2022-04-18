@@ -97,3 +97,9 @@ resource "azurerm_key_vault_secret" "adls_access_key" {
   value        = data.azurerm_storage_account.adls.primary_access_key
   key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
+
+resource "azurerm_role_assignment" "workspace_to_lake_role_assignment" {
+  scope                = azurerm_storage_account.synapsedatalake.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_synapse_workspace.synapse.identity[0].principal_id
+}
