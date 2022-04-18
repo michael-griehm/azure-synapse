@@ -63,19 +63,19 @@ resource "azurerm_key_vault_secret" "sql_administrator_login" {
 #   tags                 = var.tags
 # }
 
-resource "azurerm_synapse_spark_pool" "crypto_analytics_spark_pool" {
-  name                 = "cryptosprk"
-  synapse_workspace_id = azurerm_synapse_workspace.synapse.id
-  node_size_family     = "MemoryOptimized"
-  node_size            = "Small"
-  cache_size           = 100
-  tags                 = var.tags
-  node_count           = 3
+# resource "azurerm_synapse_spark_pool" "crypto_analytics_spark_pool" {
+#   name                 = "cryptosprk"
+#   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
+#   node_size_family     = "MemoryOptimized"
+#   node_size            = "Small"
+#   cache_size           = 100
+#   tags                 = var.tags
+#   node_count           = 3
 
-  auto_pause {
-    delay_in_minutes = 15
-  }
-}
+#   auto_pause {
+#     delay_in_minutes = 15
+#   }
+# }
 
 resource "azurerm_synapse_firewall_rule" "allow_all" {
   name                 = "allow-all"
