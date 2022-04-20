@@ -44,6 +44,24 @@ variable "synapse_admin_principal_name" {
   default     = "mikeg@ish-star.com"
 }
 
+variable "snowflake_url" {
+  type        = string
+  sensitive   = true
+  description = "The url for the snowflake reader account."
+}
+
+variable "snowflake_username" {
+  type        = string
+  sensitive   = true
+  description = "The username for the snowflake reader account user."
+}
+
+variable "snowflake_password" {
+  type        = string
+  sensitive   = true
+  description = "The password for the snowflake reader account user."
+}
+
 locals {
   loc            = lower(replace(var.location, " ", ""))
   a_name         = replace(var.app_name, "-", "")

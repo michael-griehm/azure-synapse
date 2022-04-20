@@ -47,6 +47,13 @@ resource "azurerm_synapse_workspace" "synapse" {
     object_id = data.azuread_user.synapse_admin_user_account.object_id
     tenant_id = data.azurerm_client_config.current.tenant_id
   }
+
+  github_repo {
+    account_name    = "michael-griehm"
+    branch_name     = "main"
+    repository_name = "azure-synapse-workspace"
+    root_folder     = "/"
+  }
 }
 
 resource "azurerm_key_vault_secret" "sql_administrator_login" {

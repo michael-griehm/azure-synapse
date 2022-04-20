@@ -53,4 +53,7 @@ jobs:
         env:        
           ARM_CLIENT_SECRET: ${{ steps.get-deployer-secret.outputs.synapse-demo-centralus-deployer}}
           ARM_ACCESS_KEY: ${{ steps.get-deployer-secret.outputs.tfsynapsecd-access-key }}
+          TF_VAR_snowflake_url: ${{ secrets.SNOWFLAKE_URL }}
+          TF_VAR_snowflake_username: ${{ secrets.SNOWFLAKE_USERNAME }}
+          TF_VAR_snowflake_password: ${{ secrets.SNOWFLAKE_PASSWORD }}
         run: terraform destroy -auto-approve
