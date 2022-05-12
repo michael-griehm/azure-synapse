@@ -99,12 +99,6 @@ resource "azurerm_synapse_role_assignment" "admin_role_assignment" {
   depends_on = [azurerm_synapse_firewall_rule.allow_all]
 }
 
-resource "azurerm_key_vault_secret" "adls_access_key" {
-  name         = data.azurerm_storage_account.adls.name
-  value        = data.azurerm_storage_account.adls.primary_access_key
-  key_vault_id = data.azurerm_key_vault.synapse_vault.id
-}
-
 resource "azurerm_role_assignment" "workspace_to_uncoonected_lake_role_assignment" {
   scope                = data.azurerm_storage_account.adls.id
   role_definition_name = "Storage Blob Data Contributor"
