@@ -99,8 +99,8 @@ resource "azurerm_synapse_role_assignment" "admin_role_assignment" {
   depends_on = [azurerm_synapse_firewall_rule.allow_all]
 }
 
-resource "azurerm_role_assignment" "workspace_to_uncoonected_lake_role_assignment" {
+resource "azurerm_role_assignment" "workspace_to_unconnected_lake_role_assignment" {
   scope                = data.azurerm_storage_account.adls.id
-  role_definition_name = "Storage Blob Data Contributor"
+  role_definition_name = "Contributor"
   principal_id         = azurerm_synapse_workspace.synapse.identity[0].principal_id
 }
