@@ -85,10 +85,10 @@ resource "azurerm_synapse_spark_pool" "crypto_analytics_spark_pool" {
 }
 
 resource "azurerm_synapse_firewall_rule" "allow_all" {
-  name                 = "allow-all"
+  name                 = "slower-laptop"
   synapse_workspace_id = azurerm_synapse_workspace.synapse.id
-  start_ip_address     = "0.0.0.0"
-  end_ip_address       = "255.255.255.255"
+  start_ip_address     = "24.31.171.98"
+  end_ip_address       = "24.31.171.98"
 }
 
 resource "azurerm_synapse_role_assignment" "admin_role_assignment" {
@@ -105,8 +105,8 @@ resource "azurerm_key_vault_secret" "adls_access_key" {
   key_vault_id = data.azurerm_key_vault.synapse_vault.id
 }
 
-resource "azurerm_role_assignment" "workspace_to_lake_role_assignment" {
-  scope                = azurerm_storage_account.synapsedatalake.id
-  role_definition_name = "Contributor"
+resource "azurerm_role_assignment" "workspace_to_uncoonected_lake_role_assignment" {
+  scope                = data.azurerm_storage_account.adls.id
+  role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_synapse_workspace.synapse.identity[0].principal_id
 }
